@@ -6,10 +6,25 @@ if [ ! -f ".can_go" ]; then
     exit 1
 fi
 
-# Supprimer tous les fichiers de couleur existants
-rm -f *.txt
-rm -f .encoded_1  # Supprimer le fichier temporaire s'il existe
-rm -f .encoded_2  # Supprimer le fichier de liste des fichiers initiaux s'il existe
+serial=$(cat .serial)
+# Vérifier que le serial n'est pas vide
+if [ -z "$serial" ]; then
+    echo "Erreur : le fichier .serial est vide."
+    exit 1
+fi
+
+
+# Remise a zero du jeu
+./remise_zero.sh
+
+# Enregistrer l'heure de début (en secondes depuis l'époque Unix)
+start_time=$(date +%s)
+
+# Vérifier si le fichier .start_time existe déjà
+if [[ ! -f .start_time ]]; then
+    start_time=$(date +%s)
+    echo $start_time > .start_time
+fi
 
 # Tableau de couleurs
 couleurs=("rouge" "jaune" "noir" "bleu" "vert" "blanc")
@@ -19,7 +34,6 @@ nombre_de_fichiers=$((RANDOM % 2 + 3))  # Génère 3 ou 4 fichiers
 
 # 2. Initialiser le tableau pour stocker les fichiers générés
 fichiers=()
-
 
 # 3. Générer des fichiers aléatoires selon le nombre choisi
 for i in $(seq 1 $nombre_de_fichiers); do

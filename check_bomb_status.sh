@@ -20,7 +20,6 @@ update_error_status() {
     echo "$current_total_errors / $max_errors" > "$error_status_file"
 }
 
-
 stop_the_bomb() {
 
         echo "BOOM, DOMMAGE !" > .stop_counter
@@ -66,14 +65,16 @@ stop_the_bomb() {
             fi
         else
             # Si le fichier .check_status_pid n'existe pas, utiliser ps aux pour rechercher check_bomb_status.sh
-            # echo "Le fichier .check_status_pid est introuvable, recherche du processus check_bomb_status..."
+            echo "Le fichier .check_status_pid est introuvable, recherche du processus check_bomb_status..."
 
             # Utiliser ps aux pour trouver le processus countdown.sh
             check_status_pid=$(ps aux | grep '[c]heck_bomb_status.sh' | awk '{print $2}')
+            countdown_pid=$(ps aux | grep '[c]ountdown.sh' | awk '{print $2}')
 
             if [ -n "$check_status_pid" ]; then
                 # echo "Arrêt du processus check_bomb_status trouvé (PID: $check_status_pid)"
                 kill $check_status_pid
+                kil  $countdown_pid	
             fi
         fi
 
@@ -170,7 +171,7 @@ while true; do
         else
             time_remaining="Temps non disponible"
         fi
-        echo "Bravo, vous avez désamorcé la bombe avec $time_remaining restant !" &
+        echo "Bravo, vous avez désamorcé la bombe avec $time_remaining restant et $total_errors erreurs !" &
         echo "PAS BOOM, BRAVO !" > .stop_counter
         # Supprimer les fichiers temporaires précédents
         rm -f mini_games_list

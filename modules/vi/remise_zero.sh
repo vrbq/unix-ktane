@@ -4,10 +4,11 @@
 rm -f .final_time      # Supprimer le fichier d'erreurs s'il existe
 rm -f .module_OK   # Supprimer le fichier de succès s'il existe
 
-# Supprimer tous les fichiers de couleur existants
-rm -f *.txt
-rm -f .encoded_1  # Supprimer le fichier temporaire s'il existe
-rm -f .encoded_2  # Supprimer le fichier de liste des fichiers initiaux s'il existe
+# Supprimer le fichier de citations, les instructions cachées, et le sous-répertoire
+rm -f citations 
+rm -f .encoded .encoded_2 .encoded_3 .encoded_3.b64 .encoded_4 .encoded_5
+rm -f modifications
+rm -rf burger orange pizza
 
 # Vérifier si l'option --hard a été fournie
 if [[ "$1" == "--hard" ]]; then

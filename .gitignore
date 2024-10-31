@@ -1,0 +1,15 @@
+#Add to git ignore all the . files
+.*
+!.gitignore
+!.gitkeep
+!.gitattributes
+
+verifications
+log
+category
+serial
+.log
+error_status
+mini_games_list
+time
+citations

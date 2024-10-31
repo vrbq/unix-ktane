@@ -1,136 +1,176 @@
 #!/bin/bash
 
-# Supprimer les fichiers temporaires précédents
-rm -f mini_games_list .verifications log .stop_counter .countdown_expired .countdown_in_progress error_status
 
-# Supprimer les fichiers .module_OK et .can_go de tous les modules
-        if [ -f modules_list ]; then
-            # Stocker le contenu du fichier modules_list dans une variable
-            modules=$(cat modules_list)
+# Fonction pour afficher l'aide
+function afficher_aide() {
+    echo "Utilisation : $0 [options]"
+    echo "Options :"
+    echo "  --test-module  Exécute le module de test."
+    echo "  --help         Affiche cette aide."
+}
 
-            # Boucle à travers chaque module
-            for module in $modules; do
-                module_ok_file="./modules/$module/.module_OK"
-                can_go_file="./modules/$module/.can_go"
-                error_file="./modules/$module/.error"
-                remise_zero="./modules/$module/remise_zero.sh"
-                
-                if [ -f "$module_ok_file" ]; then
-                    # Suppression de .module_OK
-                    rm "$module_ok_file"
-                fi
-                
-                if [ -f "$can_go_file" ]; then
-                    # Suppression de .can_go
-                    rm "$can_go_file"
-                fi
+function choix_difficulte() {
+   
+    # Demande de la difficulté
+    echo "Choisissez une difficulté :"
+    echo "1. Novice (1h)"
+    echo "2. Facile (40min)"
+    echo "3. Normal (30min)"
+    echo "4. Dur (20min)"
+    echo "5. Expert (10min)"
+    read -p "Entrez le numéro correspondant à la difficulté : " difficulty
 
-                if [ -f "$error_file" ]; then
-                    # Suppression de .can_go
-                    rm "$error_file"
-                fi
+    # Définition de la durée en minutes en fonction de la difficulté
+    case $difficulty in
+        1) duration=60 ;;   # 1h
+        2) duration=40 ;;   # 40 min
+        3) duration=30 ;;   # 30 min
+        4) duration=20 ;;   # 20 min
+        5) duration=10 ;;   # 10 min
+        *) echo "Difficulté invalide." ; exit 1 ;;
+    esac
 
-                if [ -f "$error_file" ]; then
-                    # Lancer la remise a zero
-                    ./"$remise_zero"
-                fi
-            done
-        fi
+}
 
-# Vérifier s'il y a un processus countdown en cours et l'arrêter
-if [ -f .countdown_pid ]; then
-    old_pid=$(cat .countdown_pid)
+choix_difficulte
+
+function choix_nombre_module() {
     
-    # Vérifier si le PID correspond toujours à un processus actif
-    if ps -p $old_pid > /dev/null; then
-        # echo "Arrêt du processus countdown en cours (PID: $old_pid)"
-        kill $old_pid
-        rm .countdown_pid
-    else
-        # echo "Le processus countdown avec PID $old_pid n'est plus actif."
-        rm .countdown_pid
+    # Lecture du fichier de modules et comptage du nombre de lignes
+    modules_list_file="modules_list"
+    mapfile -t modules < "$modules_list_file"
+    total_modules=${#modules[@]}
+
+    # Affichage des options pour le nombre de modules
+   echo "Combien de modules voulez-vous intégrer ?"
+    for i in $(seq 1 $((total_modules - 1))); do
+        echo "$i"
+    done
+    echo "$total_modules (tous les modules)"
+
+    # Demande du choix à l'utilisateur
+    read -p "Entrez le nombre de modules : " module_choice
+
+    # Validation du choix
+    if [[ $module_choice -lt 1 || $module_choice -gt $total_modules ]]; then
+        echo "Choix invalide. Veuillez entrer un nombre entre 1 et $total_modules."
+        exit 1
     fi
-else
-    # Si le fichier .countdown_pid n'existe pas, utiliser ps aux pour rechercher countdown.sh
-    # echo "Le fichier .countdown_pid est introuvable, recherche du processus countdown..."
 
-    # Utiliser ps aux pour trouver le processus countdown.sh
-    countdown_pid=$(ps aux | grep '[c]ountdown.sh' | awk '{print $2}')
+    # Sélection des modules choisis au hasard
+    selected_modules=($(shuf -e "${modules[@]}" -n "$module_choice"))
+    echo "Modules sélectionnés : ${selected_modules[*]}"
 
-    if [ -n "$countdown_pid" ]; then
-        # echo "Arrêt du processus countdown trouvé (PID: $countdown_pid)"
-        kill $countdown_pid
-    fi
-fi
+    # Stockage des modules dans la variable mini_games
+    mini_games=("${selected_modules[@]}")
 
-# Vérifier s'il y a un processus check_bomb_status en cours et l'arrêter
-if [ -f .check_status_pid ]; then
-    old_pid_check=$(cat .check_status_pid)
+}
+
+
+# Vérifier les arguments
+if [[ "$1" == "--help" ]]; then
+    afficher_aide
+    exit 0
+elif [[ "$1" == "--test-module" ]]; then
+    echo "Exécution du module de test..."
+
+    # Charger les noms dans un tableau, en utilisant les retours à la ligne comme séparateurs
+    mapfile -t mini_game_names < modules_list  # Remplace les retours à la ligne par des espaces
     
-    # Vérifier si le PID correspond toujours à un processus actif
-    if ps -p $old_pid_check > /dev/null; then
-        # echo "Arrêt du processus check_bomb_status en cours (PID: $old_pid)"
-        kill $old_pid_check
-        rm .check_status_pid
-    else
-        # echo "Le processus check_bomb_status avec PID $old_pid_check n'est plus actif."
-        rm .check_status_pid
-    fi
-else
-    # Si le fichier .check_status_pid n'existe pas, utiliser ps aux pour rechercher check_bomb_status.sh
-    # echo "Le fichier .check_status_pid est introuvable, recherche du processus check_bomb_status..."
+   # Fonction pour afficher la liste des noms
+    function afficher_noms {
+        echo "Choisissez un nom parmi la liste suivante :"
+        for i in "${!mini_game_names[@]}"; do
+            echo "$((i + 1)). ${mini_game_names[i]}"
+        done
+    }
 
-    # Utiliser ps aux pour trouver le processus countdown.sh
-    check_status_pid=$(ps aux | grep '[c]heck_bomb_status.sh' | awk '{print $2}')
+    # Demande de choix
+    while true; do
+        afficher_noms
+        read -p "Entrez le numéro du nom choisi : " choix
+        index=$((choix - 1))
 
-    if [ -n "$check_status_pid" ]; then
-        # echo "Arrêt du processus check_bomb_status trouvé (PID: $check_status_pid)"
-        kill $check_status_pid
-    fi
-fi
-
-# Fichier contenant la liste des modules
-mini_games_list="modules_list"
-
-# Vérifier si le fichier modules_list existe
-if [ -f "$mini_games_list" ]; then
-    # Stocker le contenu du fichier modules_list dans une variable
-    modules=$(cat "$mini_games_list")
-
-    # Boucle à travers chaque module
-    for module_name in $modules; do
-        # Vérifier si le répertoire du module existe
-        if [ -d "./modules/$module_name" ]; then
-            # Créer le fichier .can_go dans le répertoire du module
-            touch "./modules/$module_name/.can_go"
-            cp -r serial "./modules/$module_name/.serial"
-            # echo "Fichier .can_go créé dans le module : $module_name"
+        # Vérifier si le choix est valide
+        if [[ $index -ge 0 && $index -lt ${#mini_game_names[@]} ]]; then
+            nom="${mini_game_names[index]}"
+            echo "Vous avez choisi : $nom"
+            mini_games=($nom) 
+            break  # Sortir de la boucle
+        else
+            echo "Sélection invalide. Veuillez choisir un numéro de la liste."
         fi
     done
+
+    # Placez ici le code pour exécuter le module de test
+    # par exemple, appeler une fonction ou un autre script
 else
-    echo "Le fichier $mini_games_list n'existe pas."
+    # Liste des mini-jeux à résoudre
+    # mini_games=("fils" "vi" "size")
+    choix_nombre_module
 fi
 
+echo "Mini-jeux sélectionnés : ${mini_games[*]}"
+
+
+#Remise a zero du jeu
+./remise_zero.sh
+
+# Lancer le script de génération de serial
+./generate_seed.sh
+
+
+# Sauvegarder la liste dans un fichier caché
+for game in "${mini_games[@]}"; do
+    # Afficher le nom du mini-jeu en cours
+    echo "Lancement du mini-jeu : $game"
+    # Écrire le nom du mini-jeu dans le fichier
+    echo "$game" >> mini_games_list
+done
+
+echo "Liste des mini-jeux sauvegardée dans mini_games_list : $(cat mini_games_list)"
+
+
+# Vérifier si le fichier modules_list existe
+if [ -f mini_games_list ]; then
+    # Parcourir chaque ligne du fichier
+    while IFS= read -r module || [[ -n "$module" ]]; do
+        echo "Module : $module"
+        # Si le module est le module "internet"
+        if [[ "$module" == "internet" ]]; then
+            # Copier un gif dans le répertoire du module
+            src="./utils/morse"
+            dest="./modules/internet"
+            gif=$(find "$src" -name "*.gif" | shuf -n 1)
+            cp "$gif" "$dest"
+        fi
+
+        # Vérifier si la ligne n'est pas vide
+        if [[ -n "$module" ]]; then
+        # Extraire uniquement les lettres (caractères alphabétiques)
+        filtered_module=$(echo "$module" | tr -d -c '[:alpha:]')
+            # Vérifier si le répertoire du module existe
+            if [ -d "./modules/$filtered_module" ]; then
+                # Créer le fichier .can_go dans le répertoire du module
+                touch "./modules/$filtered_module/.can_go"
+                cp -r serial "./modules/$filtered_module/.serial"
+                # echo "Fichier .can_go créé dans le module : $module_name"
+            fi
+        fi
+    done < mini_games_list
+else
+    echo "Le fichier modules_list n'existe pas."
+fi
 
 # Créer un nouveau fichier log vide
 touch .log
 
-# Lancer le script de génération de serial
-./generate_seed.sh &
-
-
-# Liste des mini-jeux à résoudre
-mini_games=("fils")  # Exemple d'autres mini-jeux
-
-# Sauvegarder la liste dans un fichier caché
-for game in "${mini_games[@]}"; do
-    echo "$game" >> mini_games_list
-done
+pkill -9 -f "countdown"
 
 # Lancer le script de compte à rebours en arrière-plan
 if [ -f countdown.sh ]; then
-    ./countdown.sh &
     rm -f ./.countdown_expired
+    ./countdown.sh $duration &
     echo "in progress" > ./.countdown_in_progress
 else
     echo "Le script countdown.sh n'existe pas."
@@ -159,4 +199,16 @@ done
 # Si le processus est trouvé, sauvegarder le PID
 if [ -z "$check_status_pid" ]; then
      echo "Impossible de lancer correctement la bombe"
+else
+    echo "$check_status_pid" > .check_status_pid
+fi
+
+# Afficher le temps restant
+if [ -f .countdown_in_progress ]; then
+    echo "La bombe est lancée, le compte à rebours tourne !"
+    if [ -f time ]; then
+        echo "Il vous $(cat time) pour désamorcer la bombe."
+    fi
+else
+    echo "La bombe n'est pas lancée !"
 fi
