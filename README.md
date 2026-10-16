@@ -105,15 +105,14 @@ Voici la liste des niveaux :
 
 1. Lancer un terminal
 2. Naviguez dans vos dossiers avec `cd` jusqu’à l’endroit où vous souhaitez télécharger le jeu.
-3. Entrer la commande suivante :
-   `git clone https://github.com/vrbq/unix-ktane`
-   ou via l’url raccourci : `git clone [https://shorturl.at/qHFhc](https://shorturl.at/qHFhc)`
+3. Entrer la commande suivante :  `git clone https://github.com/vrbq/unix-ktane`
+
 
 ### Comment lancer le jeu ?
 
 1. Lancer un terminal.
 2. Entrer dans le répertoire principal du jeu, appelé `unix-ktane`
-3. Lancer le script `start --level 0` pour démarrer au niveau 0.
+3. Lancer le script `./start --level 0` pour démarrer au niveau 0.
    _(une fois le niveau réussi, passez au niveau 1 !)_
 
 Si la bombe a bien été lancé, un message de confirmation apparaitra sur l’interface.
